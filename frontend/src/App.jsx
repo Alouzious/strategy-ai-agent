@@ -240,7 +240,7 @@ export default function App() {
       saveToHistory(res.data);
       updateToast(tid, `Report ready in ${res.data.time_taken}!`, "success");
     } catch (err) {
-      const msg = err.response?.data?.error || "Something went wrong.";
+      const msg = err.response?.data?.error || "Something went wrong. Please try again.";
       setError(msg);
       updateToast(tid, "Pipeline failed. Check your API key.", "error");
     }
