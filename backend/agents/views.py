@@ -6,30 +6,22 @@ from crewai import Agent, Task, Crew, Process, LLM
 import os
 import time
 import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# ── All free Groq models in priority order ──
-# If one hits rate limit, automatically tries the next one
-FALLBACK_MODELS = [
-    os.getenv("GROQ_MODEL", "gemma2-9b-it"),  # primary from .env
-    "gemma2-9b-it",                            # 500k/day
-    "mixtral-8x7b-32768",                      # 500k/day
-    "llama-3.1-8b-instant",                    # 500k/day - fastest
-    "llama3-8b-8192",                          # 500k/day
-    "llama3-70b-8192",                         # 500k/day
-    "llama-3.3-70b-versatile",                 # 100k/day - smartest
+# ── Your exact available models from Groq API ──
+MODELS = [
+    "llama-3.1-8b-instant",                      # fastest, high limit
+    "meta-llama/llama-4-scout-17b-16e-instruct",  # latest Meta model
+    "qwen/qwen3-32b",                             # Alibaba - powerful
+    "moonshotai/kimi-k2-instruct",                # Moonshot AI
+    "llama-3.3-70b-versatile",                    # smartest Meta
 ]
-
-# Remove duplicates while keeping order
-seen = set()
-MODELS = []
-for m in FALLBACK_MODELS:
-    if m not in seen:
-        seen.add(m)
-        MODELS.append(m)
 
 
 def build_llm(model, temperature=0.5):
@@ -103,14 +95,12 @@ def make_agents_and_tasks(topic, industry, audience, llm):
         context=[task4],
     )
 
-    agents = [researcher, analyst, strategist, writer, critic]
-    tasks  = [task1, task2, task3, task4, task5]
-    return agents, tasks
+    return [researcher, analyst, strategist, writer, critic], [task1, task2, task3, task4, task5]
 
 
 class RunAgentView(APIView):
     def post(self, request):
-        topic    = request.data.get("topic", "AI trends").strip()
+        topic    = request.data.get("topic", "").strip()
         industry = request.data.get("industry", "General").strip()
         audience = request.data.get("audience", "General public").strip()
 
@@ -120,14 +110,19 @@ class RunAgentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        start_time  = time.time()
-        last_error  = None
-        used_model  = None
+        if not GROQ_API_KEY:
+            return Response(
+                {"error": "API key not configured. Contact support."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        # ── Try each model until one works ──
+        start_time = time.time()
+
         for model in MODELS:
             try:
-                print(f"[StrategyAI] Trying model: {model}")
+                logger.info(f"[StrategyAI] Trying: {model}")
+                print(f"[StrategyAI] Trying: {model}")
+
                 llm = build_llm(model)
                 agents, tasks = make_agents_and_tasks(topic, industry, audience, llm)
 
@@ -139,11 +134,10 @@ class RunAgentView(APIView):
                     memory=False,
                 )
 
-                result   = crew.kickoff()
-                used_model = model
-                elapsed  = round(time.time() - start_time, 1)
+                result  = crew.kickoff()
+                elapsed = round(time.time() - start_time, 1)
 
-                print(f"[StrategyAI] Success with model: {model}")
+                print(f"[StrategyAI] Success with: {model} in {elapsed}s")
 
                 return Response({
                     "status":     "success",
@@ -163,35 +157,45 @@ class RunAgentView(APIView):
 
             except Exception as e:
                 error_msg = str(e)
-                last_error = error_msg
+                print(f"[StrategyAI] Error on {model}: {error_msg[:200]}")
 
+                # Rate limit — try next model
                 if "rate_limit" in error_msg.lower() or "ratelimit" in error_msg.lower():
-                    print(f"[StrategyAI] Rate limit on {model} — trying next model...")
-                    time.sleep(1)
+                    print(f"[StrategyAI] Rate limited on {model} — switching...")
+                    time.sleep(2)
                     continue
-                else:
-                    # Not a rate limit error — stop trying
-                    traceback.print_exc()
+
+                # Model not found — try next
+                if "model_not_found" in error_msg.lower() or "does not exist" in error_msg.lower():
+                    print(f"[StrategyAI] Model not found: {model} — switching...")
+                    continue
+
+                # Auth error — stop immediately
+                if "invalid_api_key" in error_msg.lower() or "authentication" in error_msg.lower():
                     return Response({
                         "status": "error",
-                        "error":  "Something went wrong. Please try again.",
-                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        "error": "API key is invalid. Please contact support.",
+                    }, status=status.HTTP_401_UNAUTHORIZED)
 
-        # All models exhausted
-        print(f"[StrategyAI] All models rate limited.")
+                # Any other error — log and try next model
+                traceback.print_exc()
+                print(f"[StrategyAI] Unknown error on {model} — trying next...")
+                continue
+
+        # All models failed
+        print("[StrategyAI] All models exhausted.")
         return Response({
             "status": "error",
-            "error":  "All AI models are currently at capacity. Please try again in 15 minutes.",
+            "error":  "Our AI pipeline is at capacity right now. Please try again in 15 minutes.",
         }, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
 
 class HealthCheckView(APIView):
     def get(self, request):
         return Response({
-            "status":         "online",
-            "stages":         5,
-            "primary_model":  MODELS[0],
-            "fallback_models": MODELS[1:],
-            "total_models":   len(MODELS),
-            "key_set":        bool(GROQ_API_KEY),
+            "status":   "online",
+            "stages":   5,
+            "models":   MODELS,
+            "total":    len(MODELS),
+            "key_set":  bool(GROQ_API_KEY),
         })
