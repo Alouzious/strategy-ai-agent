@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Settings, Bell, ChevronRight,
   Layers, Award, Rocket, Download, History,
   X, CheckCheck, Info, AlertTriangle, Lightbulb,
-  Menu, RefreshCw, Hash, BarChart2,
+  Menu, RefreshCw, Hash, BarChart2, Globe,
   DollarSign, Calendar, Shield, Star, ChevronUp
 } from "lucide-react";
 import "./App.css";
@@ -326,6 +326,7 @@ export default function App() {
   const [topic,setTopic]=useState("");
   const [industry,setIndustry]=useState("");
   const [audience,setAudience]=useState("");
+  const [location,setLocation]=useState("");
   const [result,setResult]=useState(null);
   const [loading,setLoading]=useState(false);
   const [active,setActive]=useState("");
@@ -354,7 +355,7 @@ export default function App() {
     }
     try{
       const res=await axios.post("https://strategy-ai-agent.onrender.com/api/run-agent/",{
-        topic,industry:industry||"General",audience:audience||"General public",
+        topic,industry:industry||"General",audience:audience||"General public",location:location||"Global",
       });
       setResult(res.data);saveToHistory(res.data);setExpanded("writer");
       updateToast(tid,`Report ready in ${res.data.time_taken}!`,"success");
@@ -467,6 +468,10 @@ export default function App() {
                         <label className="field-label"><Zap size={12}/> Strategy topic <span className="req-dot"/></label>
                         <input className="field-input large" value={topic} onChange={e=>setTopic(e.target.value)} onKeyDown={e=>e.key==="Enter"&&runAgents()} placeholder="e.g. Launch a fintech app for Gen Z in East Africa" disabled={loading}/>
                       </div>
+                      <div className="field-block">
+                        <label className="field-label"><Globe size={12}/> Location</label>
+                        <input className="field-input" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. Kampala, Uganda" disabled={loading}/>
+                      </div>
                       <div className="field-row">
                         <div className="field-block"><label className="field-label"><Building2 size={12}/> Industry</label><input className="field-input" value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="e.g. Fintech" disabled={loading}/></div>
                         <div className="field-block"><label className="field-label"><Users size={12}/> Target audience</label><input className="field-input" value={audience} onChange={e=>setAudience(e.target.value)} placeholder="e.g. Ages 18–30" disabled={loading}/></div>
@@ -506,12 +511,12 @@ export default function App() {
                   <div className="results-topbar">
                     <div className="results-title">
                       <div className="results-check"><CheckCircle2 size={20}/></div>
-                      <div><div className="rt-main">Strategy Report Complete</div><div className="rt-sub">{result.topic} · {result.industry} · {result.audience}</div></div>
+                      <div><div className="rt-main">Strategy Report Complete</div><div className="rt-sub">{result.topic} · {result.industry} · {result.audience} · 📍 {result.location}</div></div>
                     </div>
                     <div className="results-actions">
                       <div className="results-time"><Clock size={12}/>{result.time_taken}</div>
                       <button className="btn-export-lg" onClick={handleExport}><Download size={14}/>Export PDF</button>
-                      <button className="btn-new" onClick={()=>{setResult(null);setTopic("");setIndustry("");setAudience("");}}><RefreshCw size={13}/>New</button>
+                      <button className="btn-new" onClick={()=>{setResult(null);setTopic("");setIndustry("");setAudience("");setLocation("");}}><RefreshCw size={13}/>New</button>
                     </div>
                   </div>
 
