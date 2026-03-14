@@ -1,0 +1,7 @@
+django==6.0.3
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+python-dotenv==1.1.1
+crewai==1.10.1
+crewai-tools==1.10.1
+gunicorn==21.2.0
