@@ -354,7 +354,7 @@ export default function App() {
       await new Promise(r=>setTimeout(r,900));
     }
     try{
-      const res=await axios.post("https://strategy-ai-agent.onrender.com/api/run-agent/",{
+      const res=await axios.post("http://127.0.0.1:8000/api/run-agent/",{
         topic,industry:industry||"General",audience:audience||"General public",location:location||"Global",
       });
       setResult(res.data);saveToHistory(res.data);setExpanded("writer");
