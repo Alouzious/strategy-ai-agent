@@ -343,4 +343,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 .rv-table td{padding:8px 12px;color:var(--muted);border-bottom:1px solid var(--border);font-size:.8rem;line-height:1.5;}
 .rv-table tbody tr:last-child td{border-bottom:none;}
 .rv-table tbody tr:hover{background:rgba(255,255,255,.02);}
-.rv-table tbody tr:nth-child(even){background:rgba(255,255,255,.01);}
+.rv-table tbody tr:nth-child(even){background:rgba(255,255,255,.01);}.server-status{display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:.72rem;margin-bottom:6px;}
+.wake-banner{display:flex;align-items:center;gap:9px;background:#1a1a0a;border:1px solid #3a3a1a;border-radius:9px;padding:10px 14px;color:var(--gold);font-size:.8rem;margin-bottom:12px;}
+.field-optional{font-size:.68rem;color:var(--hint);font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px;}
+.ws-ex-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.ws-ex-loc{display:flex;align-items:center;gap:3px;font-size:.7rem;color:var(--hint);white-space:nowrap;flex-shrink:0;}
